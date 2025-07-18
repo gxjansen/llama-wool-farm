@@ -132,13 +132,13 @@ module.exports = {
       ios: true,
       icons: [
         {
-          src: path.resolve('public/icons/icon-512.png'),
+          src: path.resolve('icon-512.png'),
           sizes: [96, 128, 192, 256, 384, 512],
           purpose: 'any maskable',
           ios: true,
         },
         {
-          src: path.resolve('public/icons/icon-1024.png'),
+          src: path.resolve('icon-1024.png'),
           size: '1024x1024',
           purpose: 'any maskable',
           ios: 'startup',
