@@ -1,0 +1,36 @@
+# Browsers that we support
+
+# Production browsers
+> 0.2%
+not dead
+not op_mini all
+
+# Development browsers (more lenient)
+[development]
+last 1 chrome version
+last 1 firefox version
+last 1 safari version
+
+# Modern browsers for ES6+ features
+[modern]
+last 2 chrome versions
+last 2 firefox versions
+last 2 safari versions
+last 2 edge versions
+
+# Legacy support for older devices
+[legacy]
+> 0.5%
+last 2 versions
+not dead
+not ie 11
+not op_mini all
+not android 4.4.3-4.4.4
+not samsung 4
+
+# PWA optimized browsers
+[pwa]
+chrome >= 60
+firefox >= 55
+safari >= 11
+edge >= 79

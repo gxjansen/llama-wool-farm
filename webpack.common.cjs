@@ -1,7 +1,18 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const WebpackPwaManifest = require('webpack-pwa-manifest');
+const dotenv = require('dotenv');
+
+// Load environment variables
+const env = dotenv.config().parsed || {};
+
+// Reduce it to a nice object, the same as before
+const envKeys = Object.keys(env).reduce((prev, next) => {
+  prev[`process.env.${next}`] = JSON.stringify(env[next]);
+  return prev;
+}, {});
 
 module.exports = {
   entry: {
@@ -19,9 +30,9 @@ module.exports = {
       '@systems': path.resolve(__dirname, 'src/systems'),
       '@utils': path.resolve(__dirname, 'src/utils'),
       '@types': path.resolve(__dirname, 'src/types'),
-      '@ui': path.resolve(__dirname, 'src/game/ui'),
-      '@config': path.resolve(__dirname, 'src/game/config'),
-      '@core': path.resolve(__dirname, 'src/game/core'),
+      '@ui': path.resolve(__dirname, 'src/ui'),
+      '@config': path.resolve(__dirname, 'src/config'),
+      '@core': path.resolve(__dirname, 'src/core'),
       '@services': path.resolve(__dirname, 'src/services'),
     },
     // Phaser.js specific optimizations
@@ -43,6 +54,13 @@ module.exports = {
         test: /\.tsx?$/,
         use: [
           {
+            loader: 'babel-loader',
+            options: {
+              cacheDirectory: true,
+              cacheCompression: false,
+            }
+          },
+          {
             loader: 'ts-loader',
             options: {
               transpileOnly: true, // Speed up compilation in development
@@ -54,7 +72,29 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ['style-loader', 'css-loader', 'postcss-loader'],
+      },
+      {
+        test: /\.s[ac]ss$/i,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 2,
+            },
+          },
+          'postcss-loader',
+          {
+            loader: 'sass-loader',
+            options: {
+              implementation: require('sass'),
+              sassOptions: {
+                fiber: false,
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif|webp)$/i,
@@ -76,11 +116,26 @@ module.exports = {
         },
       },
       {
-        test: /\.(ogg|mp3|wav|m4a)$/i,
+        test: /\.(ogg|mp3|wav|m4a|aac|flac)$/i,
         type: 'asset/resource',
         generator: {
           filename: 'assets/audio/[name].[hash:8][ext]',
         },
+      },
+      {
+        test: /\.(mp4|webm|ogg|avi|mov)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'assets/video/[name].[hash:8][ext]',
+        },
+      },
+      {
+        test: /\.(atlas|json5?)$/i,
+        type: 'asset/resource',
+        generator: {
+          filename: 'assets/data/[name].[hash:8][ext]',
+        },
+        exclude: [/node_modules/, /package\.json$/, /tsconfig\.json$/, /\.config\.js$/],
       },
       // Special handling for Phaser's XML/JSON files
       {
@@ -91,6 +146,10 @@ module.exports = {
     ],
   },
   plugins: [
+    new webpack.DefinePlugin({
+      ...envKeys,
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    }),
     new HtmlWebpackPlugin({
       template: './public/index.html',
       chunks: ['main'], // Exclude service worker from HTML
@@ -132,13 +191,13 @@ module.exports = {
       ios: true,
       icons: [
         {
-          src: path.resolve('icon-512.png'),
+          src: path.resolve(__dirname, 'public/icons/icon-512.png'),
           sizes: [96, 128, 192, 256, 384, 512],
           purpose: 'any maskable',
           ios: true,
         },
         {
-          src: path.resolve('icon-1024.png'),
+          src: path.resolve(__dirname, 'public/icons/icon-1024.png'),
           size: '1024x1024',
           purpose: 'any maskable',
           ios: 'startup',

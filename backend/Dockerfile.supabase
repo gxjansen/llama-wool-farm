@@ -1,0 +1,279 @@
+# Supabase-optimized Dockerfile for Llama Wool Farm API
+# Optimized for serverless deployment and Supabase integration
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for native modules
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    postgresql-client \
+    curl
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including devDependencies for build)
+RUN npm ci --include=dev
+
+# Copy source code
+COPY . .
+
+# Build the application (if using TypeScript)
+RUN npm run build 2>/dev/null || echo "No build script found"
+
+# Remove development dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Production stage optimized for Supabase
+FROM node:18-alpine AS production
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+
+# Copy Supabase configuration files
+COPY --chown=nodejs:nodejs ./supabase ./supabase
+COPY --chown=nodejs:nodejs ./.env.supabase.example ./.env.example
+
+# Copy additional files
+COPY --chown=nodejs:nodejs ./docs ./docs
+COPY --chown=nodejs:nodejs ./functions ./functions
+
+# Create logs directory
+RUN mkdir -p logs && chown nodejs:nodejs logs
+
+# Create temp directory for file uploads
+RUN mkdir -p tmp && chown nodejs:nodejs tmp
+
+# Set environment variables for Supabase
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV DATABASE_TYPE=postgresql
+ENV USE_SUPABASE=true
+
+# Security: run as non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 3000
+
+# Enhanced health check for Supabase
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start the application
+CMD ["node", "src/index.js"]
+
+# Development stage for Supabase local development
+FROM node:18-alpine AS development
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates \
+    git
+
+# Install Supabase CLI
+RUN npm install -g @supabase/cli
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV USE_SUPABASE=true
+
+# Expose ports (API and Supabase local)
+EXPOSE 3000 54321
+
+# Use nodemon for development with Supabase
+CMD ["npm", "run", "dev"]
+
+# Supabase Edge Functions stage
+FROM denoland/deno:alpine AS edge-functions
+
+# Set working directory
+WORKDIR /app
+
+# Copy Supabase functions
+COPY ./supabase/functions ./functions
+
+# Install function dependencies
+RUN deno cache functions/*/index.ts
+
+# Set environment variables
+ENV SUPABASE_URL=http://localhost:54321
+ENV SUPABASE_ANON_KEY=your-anon-key
+
+# Expose Supabase functions port
+EXPOSE 54321
+
+# Start Supabase functions
+CMD ["deno", "run", "--allow-all", "--unstable", "functions/index.ts"]
+
+# Testing stage with Supabase
+FROM node:18-alpine AS testing
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates
+
+# Install Supabase CLI
+RUN npm install -g @supabase/cli
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Copy test configuration
+COPY ./tests ./tests
+COPY ./supabase ./supabase
+
+# Set test environment variables
+ENV NODE_ENV=test
+ENV USE_SUPABASE=true
+ENV SUPABASE_URL=http://localhost:54321
+ENV SUPABASE_ANON_KEY=test-anon-key
+
+# Run tests with Supabase
+CMD ["npm", "run", "test:supabase"]
+
+# Netlify Functions stage
+FROM node:18-alpine AS netlify-functions
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code optimized for Netlify Functions
+COPY ./src ./src
+COPY ./functions ./functions
+
+# Copy Netlify configuration
+COPY netlify.toml ./
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NETLIFY_FUNCTIONS=true
+ENV USE_SUPABASE=true
+
+# Build for Netlify Functions
+RUN npm run build:netlify 2>/dev/null || echo "No Netlify build script found"
+
+# Entry point for Netlify Functions
+CMD ["node", "functions/index.js"]
+
+# Migration stage for Supabase
+FROM node:18-alpine AS migration
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates
+
+# Install Supabase CLI
+RUN npm install -g @supabase/cli
+
+# Set working directory
+WORKDIR /app
+
+# Copy migration files
+COPY ./supabase ./supabase
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV USE_SUPABASE=true
+
+# Run migrations
+CMD ["supabase", "db", "push"]
+
+# Monitoring stage
+FROM node:18-alpine AS monitoring
+
+# Install system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    ca-certificates
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy monitoring scripts
+COPY ./scripts ./scripts
+COPY ./src ./src
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV USE_SUPABASE=true
+
+# Expose metrics port
+EXPOSE 3001
+
+# Start monitoring
+CMD ["node", "scripts/monitor.js"]

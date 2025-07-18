@@ -1,5 +1,5 @@
 const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
+const common = require('./webpack.common.cjs');
 const webpack = require('webpack');
 const path = require('path');
 const fs = require('fs');
@@ -100,8 +100,6 @@ module.exports = merge(common, {
       __PROD__: false,
     }),
     // HMR plugin is automatically added when hot: true in devServer
-    // Add named modules plugin for better debugging
-    new webpack.NamedModulesPlugin(),
     // Show module paths in HMR logs
     new webpack.HotModuleReplacementPlugin({
       multiStep: true,
@@ -114,6 +112,15 @@ module.exports = merge(common, {
     }),
     // Better error handling in development
     new webpack.NoEmitOnErrorsPlugin(),
+    // Fork TS checker for better performance
+    new (require('fork-ts-checker-webpack-plugin'))({
+      typescript: {
+        diagnosticOptions: {
+          semantic: true,
+          syntactic: true,
+        },
+      },
+    }),
   ],
   optimization: {
     removeAvailableModules: false,

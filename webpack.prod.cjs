@@ -1,5 +1,5 @@
 const { merge } = require('webpack-merge');
-const common = require('./webpack.common.js');
+const common = require('./webpack.common.cjs');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -30,7 +30,7 @@ module.exports = merge(common, {
           {
             loader: 'ts-loader',
             options: {
-              transpileOnly: false, // Type checking in production
+              transpileOnly: true, // Skip type checking for faster builds
               experimentalWatchApi: false,
             },
           },

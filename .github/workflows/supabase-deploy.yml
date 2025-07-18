@@ -1,0 +1,388 @@
+name: Deploy to Supabase
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+jobs:
+  # Job 1: Lint and Test
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+        
+      - name: Run linter
+        working-directory: ./backend
+        run: npm run lint
+        
+      - name: Run unit tests
+        working-directory: ./backend
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          
+      - name: Run integration tests
+        working-directory: ./backend
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+  # Job 2: Build and validate
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+        
+      - name: Build application
+        working-directory: ./backend
+        run: npm run build
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            backend/dist/
+            backend/package*.json
+            backend/src/
+          retention-days: 7
+
+  # Job 3: Deploy to Supabase (staging)
+  deploy-staging:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install Supabase CLI
+        run: |
+          npm install -g @supabase/cli
+          
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+          
+      - name: Setup Supabase
+        working-directory: ./backend
+        run: |
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+          
+      - name: Run database migrations
+        working-directory: ./backend
+        run: |
+          supabase db push
+          
+      - name: Deploy Edge Functions
+        working-directory: ./backend
+        run: |
+          supabase functions deploy --no-verify-jwt
+          
+      - name: Update environment variables
+        working-directory: ./backend
+        run: |
+          supabase secrets set NODE_ENV=staging
+          supabase secrets set LOG_LEVEL=info
+          supabase secrets set CACHE_TTL=300
+          
+      - name: Run deployment tests
+        working-directory: ./backend
+        run: npm run test:deployment
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_STAGING }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_STAGING }}
+          
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 4: Deploy to Supabase (production)
+  deploy-production:
+    needs: [test, build, deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install Supabase CLI
+        run: |
+          npm install -g @supabase/cli
+          
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+          
+      - name: Setup Supabase
+        working-directory: ./backend
+        run: |
+          supabase link --project-ref ${{ env.SUPABASE_PROJECT_ID }}
+          
+      - name: Run database migrations
+        working-directory: ./backend
+        run: |
+          supabase db push
+          
+      - name: Deploy Edge Functions
+        working-directory: ./backend
+        run: |
+          supabase functions deploy --no-verify-jwt
+          
+      - name: Update environment variables
+        working-directory: ./backend
+        run: |
+          supabase secrets set NODE_ENV=production
+          supabase secrets set LOG_LEVEL=warn
+          supabase secrets set CACHE_TTL=3600
+          
+      - name: Run production smoke tests
+        working-directory: ./backend
+        run: npm run test:smoke
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_PRODUCTION }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY_PRODUCTION }}
+          
+      - name: Generate deployment report
+        working-directory: ./backend
+        run: |
+          echo "# Deployment Report" > deployment-report.md
+          echo "## Date: $(date)" >> deployment-report.md
+          echo "## Commit: ${{ github.sha }}" >> deployment-report.md
+          echo "## Branch: ${{ github.ref }}" >> deployment-report.md
+          echo "## Environment: Production" >> deployment-report.md
+          echo "## Status: Success" >> deployment-report.md
+          
+      - name: Upload deployment report
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report
+          path: backend/deployment-report.md
+          
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 5: Deploy to Netlify (API Functions)
+  deploy-netlify:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: netlify
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+        
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: backend/
+          
+      - name: Build for Netlify Functions
+        working-directory: ./backend
+        run: |
+          npm run build:netlify
+          
+      - name: Deploy to Netlify
+        uses: netlify/actions/deploy@master
+        with:
+          publish-dir: backend/dist
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          
+      - name: Run Netlify function tests
+        working-directory: ./backend
+        run: npm run test:netlify
+        env:
+          NETLIFY_FUNCTIONS_URL: ${{ secrets.NETLIFY_FUNCTIONS_URL }}
+
+  # Job 6: Security scan
+  security-scan:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run security audit
+        working-directory: ./backend
+        run: npm audit --audit-level=high
+        
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        with:
+          args: --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        working-directory: ./backend
+        
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            backend/snyk-report.json
+            backend/audit-report.json
+          retention-days: 30
+
+  # Job 7: Performance monitoring
+  performance-monitoring:
+    needs: [deploy-production]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          
+      - name: Run performance tests
+        working-directory: ./backend
+        run: k6 run tests/load/production-load.js
+        env:
+          API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results
+          path: backend/performance-results.json
+          retention-days: 30
+
+  # Job 8: Cleanup
+  cleanup:
+    needs: [deploy-production, deploy-netlify]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Cleanup artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            // Keep only the last 5 artifacts
+            const toDelete = artifacts.data.artifacts.slice(5);
+            
+            for (const artifact of toDelete) {
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id,
+              });
+            }

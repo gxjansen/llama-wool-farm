@@ -1,0 +1,193 @@
+[build]
+  # Build command for the backend API
+  command = "npm run build"
+  
+  # Publish directory (for static assets if any)
+  publish = "dist"
+  
+  # Functions directory for Netlify Functions
+  functions = "functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_VERSION = "9"
+
+# Netlify Functions configuration
+[functions]
+  # Directory containing function files
+  directory = "functions"
+  
+  # Node.js runtime for functions
+  node_bundler = "esbuild"
+  
+  # External node modules (don't bundle these)
+  external_node_modules = ["sharp", "canvas"]
+
+# API endpoint routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
+  from = "/metrics"
+  to = "/.netlify/functions/metrics"
+  status = 200
+
+# CORS headers for API endpoints
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Max-Age = "86400"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Environment variables for build and functions
+[build.environment]
+  # Supabase configuration
+  SUPABASE_URL = "https://your-project-id.supabase.co"
+  SUPABASE_ANON_KEY = "your-anon-key"
+  
+  # Node.js configuration
+  NODE_ENV = "production"
+  NPM_CONFIG_PRODUCTION = "true"
+  
+  # Build optimization
+  NODE_OPTIONS = "--max-old-space-size=3008"
+
+# Branch-specific configurations
+[context.production]
+  [context.production.environment]
+    NODE_ENV = "production"
+    LOG_LEVEL = "warn"
+    CACHE_TTL = "3600"
+
+[context.deploy-preview]
+  [context.deploy-preview.environment]
+    NODE_ENV = "preview"
+    LOG_LEVEL = "info"
+    CACHE_TTL = "300"
+
+[context.branch-deploy]
+  [context.branch-deploy.environment]
+    NODE_ENV = "development"
+    LOG_LEVEL = "debug"
+    CACHE_TTL = "60"
+
+# Function-specific configurations
+[functions.game-api]
+  # Increase timeout for game operations
+  timeout = 30
+
+[functions.websocket]
+  # WebSocket support (if using Netlify's WebSocket support)
+  timeout = 300
+
+[functions.health]
+  # Quick health check
+  timeout = 5
+
+# Plugin configurations
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
+[[plugins]]
+  package = "netlify-plugin-submit-sitemap"
+  [plugins.inputs]
+    baseUrl = "https://your-site.netlify.app"
+    sitemapPath = "/sitemap.xml"
+    ignorePeriod = 0
+    providers = [
+      "google",
+      "bing",
+      "yandex"
+    ]
+
+# Edge handlers (if using Netlify Edge Functions)
+[[edge_functions]]
+  function = "auth-middleware"
+  path = "/api/auth/*"
+
+[[edge_functions]]
+  function = "rate-limiter"
+  path = "/api/*"
+
+# Form handling (if needed for contact forms)
+[forms]
+  # Form processing settings
+  spam_protection = true
+
+# Large Media (for game assets)
+[lfs]
+  # Track large files
+  patterns = [
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.mp3",
+    "*.wav",
+    "*.ogg",
+    "*.json"
+  ]
+
+# Analytics integration
+[analytics]
+  # Google Analytics
+  google_analytics = "G-XXXXXXXXXX"
+  
+  # Netlify Analytics
+  enable = true
+
+# Split testing (A/B testing)
+[split_testing]
+  # Enable split testing
+  enabled = true
+
+# Identity (authentication)
+[identity]
+  # Use Supabase for authentication
+  enable = false
+
+# Dev server configuration
+[dev]
+  # Local development server
+  command = "npm run dev"
+  port = 3000
+  targetPort = 3000
+  publish = "dist"
+  autoLaunch = true
+
+# Processing settings
+[processing]
+  skip_processing = false
+  
+  [processing.css]
+    bundle = true
+    minify = true
+    
+  [processing.js]
+    bundle = true
+    minify = true
+    
+  [processing.html]
+    pretty_urls = true
+    
+  [processing.images]
+    compress = true
