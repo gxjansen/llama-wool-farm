@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+build/
+
+# Coverage reports
+coverage/
+
+# Test configuration
+jest.config.js
+webpack.config.js
+
+# Generated files
+public/icons/
+*.min.js
+*.min.css
+
+# Third-party libraries
+public/lib/
+
+# Service worker (if using workbox generation)
+src/service-worker.js
+
+# Type definitions
+*.d.ts
+
+# Mock files
+tests/__mocks__/

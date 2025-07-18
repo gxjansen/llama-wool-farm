@@ -1,0 +1,197 @@
+{
+  "name": "Llama Wool Farm - Idle Clicker Game",
+  "short_name": "LlamaFarm",
+  "description": "Manage your llama farm, produce wool, and build your empire in this addictive idle clicker game!",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#4A90E2",
+  "background_color": "#ffffff",
+  "scope": "/",
+  "id": "llama-wool-farm",
+  "categories": ["games", "entertainment"],
+  "dir": "ltr",
+  "lang": "en-US",
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "icons": [
+    {
+      "src": "/icons/icon-48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/game-main.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Main game screen showing llama farm"
+    },
+    {
+      "src": "/screenshots/game-upgrades.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Upgrade shop with various farm improvements"
+    },
+    {
+      "src": "/screenshots/game-research.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Research lab with technology tree"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Play Game",
+      "short_name": "Play",
+      "description": "Jump straight into your llama farm",
+      "url": "/play",
+      "icons": [
+        {
+          "src": "/icons/play-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Rankings",
+      "description": "View global leaderboard rankings",
+      "url": "/leaderboard",
+      "icons": [
+        {
+          "src": "/icons/leaderboard-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+llamafarm",
+      "url": "/protocol?type=%s"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "application/json": [".llama", ".llamasave"]
+      },
+      "icons": [
+        {
+          "src": "/icons/file-handler-96.png",
+          "sizes": "96x96"
+        }
+      ],
+      "launch_type": "single-client"
+    }
+  ],
+  "launch_handler": {
+    "client_mode": ["focus-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "experimental_features": ["file_handling", "link_capturing"],
+  "widgets": [
+    {
+      "name": "Llama Stats",
+      "short_name": "Stats",
+      "description": "View your llama farm statistics",
+      "tag": "llamastats",
+      "template": "llamastats",
+      "type": "application/json+llamastats",
+      "data": "/api/widget/stats",
+      "update": 900,
+      "icons": [
+        {
+          "src": "/icons/widget-stats.png",
+          "sizes": "192x192"
+        }
+      ],
+      "screenshots": [
+        {
+          "src": "/screenshots/widget-stats.png",
+          "sizes": "600x400",
+          "label": "Llama farm statistics widget"
+        }
+      ]
+    }
+  ]
+}

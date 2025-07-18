@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Llama Wool Farm - Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #87CEEB 0%, #98D8E8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #2C3E50;
+        }
+        
+        .offline-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 50px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: fadeInUp 0.6s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .llama-icon {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 30px;
+            background: #4A90E2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: #2C3E50;
+        }
+        
+        p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #7F8C8D;
+            margin-bottom: 30px;
+        }
+        
+        .status-info {
+            background: #F8F9FA;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-info p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .status-info .last-played {
+            font-size: 14px;
+            color: #95A5A6;
+            margin-bottom: 0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #4A90E2;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            background: #357ABD;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 144, 226, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary-button {
+            background: #ECF0F1;
+            color: #2C3E50;
+        }
+        
+        .secondary-button:hover {
+            background: #D5DBDB;
+        }
+        
+        .offline-features {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 1px solid #ECF0F1;
+        }
+        
+        .offline-features h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #34495E;
+        }
+        
+        .feature-list {
+            display: grid;
+            gap: 15px;
+            text-align: left;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            background: #F8F9FA;
+            border-radius: 12px;
+        }
+        
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: #E8F4FD;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 20px;
+        }
+        
+        .feature-text h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #2C3E50;
+        }
+        
+        .feature-text p {
+            font-size: 14px;
+            margin-bottom: 0;
+            color: #7F8C8D;
+        }
+        
+        @media (max-width: 600px) {
+            .offline-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="llama-icon">🦙</div>
+        
+        <h1>You're Offline!</h1>
+        <p>Don't worry, your llamas are still producing wool even without an internet connection.</p>
+        
+        <div class="status-info">
+            <p><strong>🎮 Game Status:</strong> Saved locally</p>
+            <p><strong>🦙 Llamas:</strong> <span id="llamaCount">Loading...</span></p>
+            <p><strong>🧶 Wool Stored:</strong> <span id="woolCount">Loading...</span></p>
+            <p class="last-played">Last played: <span id="lastPlayed">Loading...</span></p>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="tryReconnect()">
+                <span>🔄</span>
+                Try Reconnecting
+            </button>
+            <button class="secondary-button" onclick="goBack()">
+                <span>⬅️</span>
+                Go Back
+            </button>
+        </div>
+        
+        <div class="offline-features">
+            <h2>What You Can Do Offline</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon">💾</div>
+                    <div class="feature-text">
+                        <h3>Local Save Games</h3>
+                        <p>Your progress is automatically saved to your device</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🎮</div>
+                    <div class="feature-text">
+                        <h3>Continue Playing</h3>
+                        <p>Most game features work without internet</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">☁️</div>
+                    <div class="feature-text">
+                        <h3>Auto Sync</h3>
+                        <p>Your progress will sync when you're back online</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Load game data from localStorage
+        function loadGameData() {
+            try {
+                const gameData = localStorage.getItem('llama-wool-farm-save');
+                if (gameData) {
+                    const data = JSON.parse(gameData);
+                    document.getElementById('llamaCount').textContent = data.llamas || 0;
+                    document.getElementById('woolCount').textContent = formatNumber(data.wool || 0);
+                    
+                    const lastPlayed = new Date(data.lastSaved || Date.now());
+                    document.getElementById('lastPlayed').textContent = formatTime(lastPlayed);
+                } else {
+                    document.getElementById('llamaCount').textContent = '0';
+                    document.getElementById('woolCount').textContent = '0';
+                    document.getElementById('lastPlayed').textContent = 'Never';
+                }
+            } catch (error) {
+                console.error('Failed to load game data:', error);
+                document.getElementById('llamaCount').textContent = 'Error';
+                document.getElementById('woolCount').textContent = 'Error';
+                document.getElementById('lastPlayed').textContent = 'Error';
+            }
+        }
+        
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toString();
+        }
+        
+        function formatTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+            if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            return 'Just now';
+        }
+        
+        function tryReconnect() {
+            // Show loading state
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<span>⏳</span> Checking...';
+            button.disabled = true;
+            
+            // Try to fetch a small resource to check connectivity
+            fetch('/manifest.json', { method: 'HEAD', cache: 'no-cache' })
+                .then(() => {
+                    // Connection successful, reload the page
+                    window.location.reload();
+                })
+                .catch(() => {
+                    // Still offline
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                    
+                    // Show temporary message
+                    const message = document.createElement('div');
+                    message.style.cssText = `
+                        position: fixed;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: #E74C3C;
+                        color: white;
+                        padding: 15px 25px;
+                        border-radius: 30px;
+                        animation: fadeInUp 0.3s ease;
+                    `;
+                    message.textContent = 'Still offline. Please check your connection.';
+                    document.body.appendChild(message);
+                    
+                    setTimeout(() => {
+                        message.style.animation = 'fadeOut 0.3s ease';
+                        setTimeout(() => message.remove(), 300);
+                    }, 3000);
+                });
+        }
+        
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
+        
+        // Load game data on page load
+        loadGameData();
+        
+        // Periodically check for connection
+        setInterval(() => {
+            fetch('/manifest.json', { method: 'HEAD', cache: 'no-cache' })
+                .then(() => {
+                    // Connection restored, reload
+                    window.location.reload();
+                })
+                .catch(() => {
+                    // Still offline, update game data display
+                    loadGameData();
+                });
+        }, 30000); // Check every 30 seconds
+        
+        // Add CSS animation for fadeOut
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translateX(-50%) translateY(0); }
+                to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

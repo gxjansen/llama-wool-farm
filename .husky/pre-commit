@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lint-staged for code quality checks
+npx lint-staged
+
+# Run type checking
+echo "🔍 Running TypeScript type check..."
+npm run type-check
+
+# Run unit tests for changed files
+echo "🧪 Running tests for changed files..."
+npx jest --bail --findRelatedTests $(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | tr '\n' ' ')
+
+# Check for console.log statements (except in tests and specific allowed files)
+echo "🔍 Checking for console.log statements..."
+FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | grep -v -E '(test|spec|\.d)\.(ts|tsx)$')
+if [ ! -z "$FILES" ]; then
+  CONSOLE_LOGS=$(echo "$FILES" | xargs grep -n "console\.log" || true)
+  if [ ! -z "$CONSOLE_LOGS" ]; then
+    echo "❌ Found console.log statements in:"
+    echo "$CONSOLE_LOGS"
+    echo "Please remove console.log statements or use console.warn/error instead."
+    exit 1
+  fi
+fi
+
+echo "✅ All pre-commit checks passed!"
