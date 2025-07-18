@@ -249,6 +249,5 @@ module.exports = merge(common, {
     chunkModules: false,
     modules: false,
     reasons: false,
-    useExports: false,
   },
 });
