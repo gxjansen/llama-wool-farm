@@ -16,24 +16,24 @@ const envKeys = Object.keys(env).reduce((prev, next) => {
 
 module.exports = {
   entry: {
-    main: './src/index.ts',
+    main: './frontend/src/index.ts',
     // Separate entry for service worker
-    sw: './src/service-worker.js'
+    sw: './frontend/src/service-worker.js'
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@game': path.resolve(__dirname, 'src/game'),
-      '@scenes': path.resolve(__dirname, 'src/scenes'),
-      '@objects': path.resolve(__dirname, 'src/objects'),
-      '@systems': path.resolve(__dirname, 'src/systems'),
-      '@utils': path.resolve(__dirname, 'src/utils'),
-      '@types': path.resolve(__dirname, 'src/types'),
-      '@ui': path.resolve(__dirname, 'src/ui'),
-      '@config': path.resolve(__dirname, 'src/config'),
-      '@core': path.resolve(__dirname, 'src/core'),
-      '@services': path.resolve(__dirname, 'src/services'),
+      '@': path.resolve(__dirname, 'frontend/src'),
+      '@game': path.resolve(__dirname, 'frontend/src/game'),
+      '@scenes': path.resolve(__dirname, 'frontend/src/scenes'),
+      '@objects': path.resolve(__dirname, 'frontend/src/objects'),
+      '@systems': path.resolve(__dirname, 'frontend/src/systems'),
+      '@utils': path.resolve(__dirname, 'frontend/src/utils'),
+      '@types': path.resolve(__dirname, 'frontend/src/types'),
+      '@ui': path.resolve(__dirname, 'frontend/src/ui'),
+      '@config': path.resolve(__dirname, 'frontend/src/config'),
+      '@core': path.resolve(__dirname, 'frontend/src/core'),
+      '@services': path.resolve(__dirname, 'frontend/src/services'),
     },
     // Phaser.js specific optimizations
     fallback: {
@@ -151,7 +151,7 @@ module.exports = {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     }),
     new HtmlWebpackPlugin({
-      template: './public/index.html',
+      template: './frontend/public/index.html',
       chunks: ['main'], // Exclude service worker from HTML
       title: 'Llama Wool Farm',
       meta: {
@@ -167,9 +167,9 @@ module.exports = {
     }),
     new CopyWebpackPlugin({
       patterns: [
-        { from: 'public/assets', to: 'assets', noErrorOnMissing: true },
-        { from: 'public/icons', to: 'icons', noErrorOnMissing: true },
-        { from: 'public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
+        { from: 'frontend/public/assets', to: 'assets', noErrorOnMissing: true },
+        { from: 'frontend/public/icons', to: 'icons', noErrorOnMissing: true },
+        { from: 'frontend/public/manifest.json', to: 'manifest.json', noErrorOnMissing: true },
         // Copy Phaser's static assets if any
         { 
           from: 'node_modules/phaser/dist/phaser.min.js', 
@@ -191,13 +191,13 @@ module.exports = {
       ios: true,
       icons: [
         {
-          src: path.resolve(__dirname, 'public/icons/icon-512.png'),
+          src: path.resolve(__dirname, 'frontend/public/icons/icon-512.png'),
           sizes: [96, 128, 192, 256, 384, 512],
           purpose: 'any maskable',
           ios: true,
         },
         {
-          src: path.resolve(__dirname, 'public/icons/icon-1024.png'),
+          src: path.resolve(__dirname, 'frontend/public/icons/icon-1024.png'),
           size: '1024x1024',
           purpose: 'any maskable',
           ios: 'startup',
@@ -237,14 +237,14 @@ module.exports = {
         },
         // Game core modules
         gameCore: {
-          test: /[\\/]src[\\/]game[\\/]core[\\/]/,
+          test: /[\\/]frontend[\\/]src[\\/]game[\\/]core[\\/]/,
           name: 'game-core',
           priority: 5,
           minChunks: 2,
         },
         // UI components
         ui: {
-          test: /[\\/]src[\\/]game[\\/]ui[\\/]/,
+          test: /[\\/]frontend[\\/]src[\\/]game[\\/]ui[\\/]/,
           name: 'game-ui',
           priority: 5,
           minChunks: 2,
